@@ -8,20 +8,23 @@ import json
 router = APIRouter()
 
 def _build_prompt(message: str, context_chunks: list, history: list) -> str:
-    ctx_text = "\n---\n".join(
-        [f"[{c['metadata'].get('file','?')}]\n{c['text']}" for c in context_chunks[:4]]
-    )
     history_text = ""
     for h in history[-4:]:
         history_text += f"\n{h['role'].upper()}: {h['content']}"
-    return f"""CONTEXT FROM CODEBASE:
-{ctx_text if ctx_text else "No indexed codebase yet."}
 
-CONVERSATION HISTORY:{history_text}
+    if context_chunks:
+        ctx_text = "\n---\n".join(
+            [f"[{c['metadata'].get('file','?')}]\n{c['text']}" for c in context_chunks[:3]]
+        )
+        context_section = f"RELEVANT CODEBASE CONTEXT:\n{ctx_text}\n\n"
+    else:
+        context_section = ""
 
-USER QUESTION: {message}
+    history_section = f"CONVERSATION HISTORY:{history_text}\n\n" if history_text.strip() else ""
 
-Provide a precise, technical answer based on the context above."""
+    return f"""{context_section}{history_section}USER: {message}
+
+A:"""
 
 @router.get("/ollama-health", response_model=APIResponse)
 async def ollama_health():

@@ -5,15 +5,9 @@ from typing import AsyncGenerator
 OLLAMA_BASE = "http://localhost:11434"
 DEFAULT_MODEL = "llama3.2:latest"
 
-SYSTEM_PROMPT = """You are a senior Data Engineering assistant with deep expertise in:
-- Apache Airflow DAGs and pipeline orchestration
-- SQL query analysis and optimization
-- Data lineage tracking and impact analysis
-- Data quality monitoring and SLO adherence
-- Python-based ETL pipelines
-
-Answer concisely and technically. When showing code, use markdown code blocks.
-Always be precise about table names, column names, and pipeline identifiers."""
+SYSTEM_PROMPT = """You are a helpful AI assistant. Answer all questions accurately and concisely.
+For data engineering questions, provide technical answers about pipelines, SQL, and code.
+For general questions, answer normally."""
 
 async def generate(prompt: str, model: str = DEFAULT_MODEL, system: str = SYSTEM_PROMPT) -> str:
     payload = {
@@ -21,7 +15,7 @@ async def generate(prompt: str, model: str = DEFAULT_MODEL, system: str = SYSTEM
         "prompt": prompt,
         "system": system,
         "stream": False,
-        "options": {"temperature": 0.2, "num_ctx": 2048, "num_predict": 512}
+        "options": {"temperature": 0.3, "num_ctx": 4096, "num_predict": 1024}
     }
     async with httpx.AsyncClient(timeout=120.0) as client:
         resp = await client.post(f"{OLLAMA_BASE}/api/generate", json=payload)
@@ -34,7 +28,7 @@ async def stream_generate(prompt: str, model: str = DEFAULT_MODEL, system: str =
         "prompt": prompt,
         "system": system,
         "stream": True,
-        "options": {"temperature": 0.2, "num_ctx": 2048, "num_predict": 512}
+        "options": {"temperature": 0.3, "num_ctx": 4096, "num_predict": 1024}
     }
     async with httpx.AsyncClient(timeout=120.0) as client:
         async with client.stream("POST", f"{OLLAMA_BASE}/api/generate", json=payload) as resp:
