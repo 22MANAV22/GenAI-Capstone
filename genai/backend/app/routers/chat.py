@@ -1,0 +1,53 @@
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from app.models.schemas import ChatRequest, APIResponse
+from app.utils.response import ok, err
+from app.services import rag_service, ollama_service
+import json
+
+router = APIRouter()
+
+def _build_prompt(message: str, context_chunks: list, history: list) -> str:
+    ctx_text = "\n---\n".join(
+        [f"[{c['metadata'].get('file','?')}]\n{c['text']}" for c in context_chunks[:4]]
+    )
+    history_text = ""
+    for h in history[-4:]:
+        history_text += f"\n{h['role'].upper()}: {h['content']}"
+    return f"""CONTEXT FROM CODEBASE:
+{ctx_text if ctx_text else "No indexed codebase yet."}
+
+CONVERSATION HISTORY:{history_text}
+
+USER QUESTION: {message}
+
+Provide a precise, technical answer based on the context above."""
+
+@router.post("/chat", response_model=APIResponse)
+async def chat(req: ChatRequest):
+    try:
+        chunks = rag_service.query_similar(req.message, top_k=5)
+        prompt = _build_prompt(req.message, chunks, req.history or [])
+        response = await ollama_service.generate(prompt)
+        return ok(data={
+            "response": response,
+            "sources": [
+                {"file": c["metadata"].get("file", "?"), "type": c["metadata"].get("type", "?")}
+                for c in chunks
+            ],
+        }, message="")
+    except Exception as e:
+        return err(message=f"LLM error: {str(e)}")
+
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    chunks = rag_service.query_similar(req.message, top_k=5)
+    prompt = _build_prompt(req.message, chunks, req.history or [])
+    async def event_generator():
+        try:
+            async for token in ollama_service.stream_generate(prompt):
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
