@@ -23,6 +23,13 @@ USER QUESTION: {message}
 
 Provide a precise, technical answer based on the context above."""
 
+@router.get("/ollama-health", response_model=APIResponse)
+async def ollama_health():
+    result = await ollama_service.check_ollama_health()
+    if result["ok"]:
+        return ok(data=result, message="Ollama is running")
+    return err(message=f"Ollama not reachable: {result.get('error','unknown')}")
+
 @router.post("/chat", response_model=APIResponse)
 async def chat(req: ChatRequest):
     try:

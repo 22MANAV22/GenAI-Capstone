@@ -3,7 +3,7 @@ import json
 from typing import AsyncGenerator
 
 OLLAMA_BASE = "http://localhost:11434"
-DEFAULT_MODEL = "llama3"
+DEFAULT_MODEL = "llama3.2:latest"
 
 SYSTEM_PROMPT = """You are a senior Data Engineering assistant with deep expertise in:
 - Apache Airflow DAGs and pipeline orchestration
@@ -68,3 +68,14 @@ async def list_models() -> list:
             return [m["name"] for m in resp.json().get("models", [])]
     except Exception:
         return []
+
+
+async def check_ollama_health() -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{OLLAMA_BASE}/api/tags")
+            resp.raise_for_status()
+            models = [m["name"] for m in resp.json().get("models", [])]
+            return {"ok": True, "models": models}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "models": []}

@@ -17,7 +17,7 @@ export const getHealth    = ()                          => api.get('/health')
 export const getSlo       = ()                          => api.get('/slo')
 export const triggerCheck = (table_name)                => api.post('/trigger-check', { table_name })
 export const getMcpTools  = ()                          => api.get('/mcp/tools')
-
+export const checkOllamaHealth = () => api.get('/ollama-health')
 /**
  * FIX [10]: SSE helper for real-time repo ingestion progress.
  *
