@@ -3,7 +3,7 @@ import json
 from typing import AsyncGenerator
 
 OLLAMA_BASE = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.2:latest"
+DEFAULT_MODEL = "qwen2.5:14b"
 
 SYSTEM_PROMPT = """You are a helpful AI assistant. Answer all questions accurately and concisely.
 For data engineering questions, provide technical answers about pipelines, SQL, and code.
